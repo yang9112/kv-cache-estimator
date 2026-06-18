@@ -10,6 +10,21 @@ export const PRECISIONS: Precision[] = [
   { label: 'INT4 (4-bit int)', bytes: 0.5 },
 ];
 
+export type KVCacheDType = {
+  label: string;
+  key: string;
+  bytesPerParam: number; // -1 means "same as model precision"
+  hasPerTokenHeadScales: boolean;
+};
+
+// Based on vLLM CacheConfig.cache_dtype and KVQuantMode
+export const KV_CACHE_DTYPES: KVCacheDType[] = [
+  { label: 'Auto (same as model)', key: 'auto', bytesPerParam: -1, hasPerTokenHeadScales: false },
+  { label: 'FP8 E4M3 (per-tensor scale)', key: 'fp8_e4m3', bytesPerParam: 1, hasPerTokenHeadScales: false },
+  { label: 'FP8 (per-token-head scale)', key: 'fp8_per_token_head', bytesPerParam: 1, hasPerTokenHeadScales: true },
+  { label: 'INT8 (per-token-head scale)', key: 'int8_per_token_head', bytesPerParam: 1, hasPerTokenHeadScales: true },
+];
+
 export type ModelPreset = {
   id: string;
   name: string;
@@ -23,6 +38,11 @@ export type ModelPreset = {
   mlaDc?: number;
   mlaDr?: number;
   fullAttnLayers?: number;
+  // MoE fields (verified against HF config.json where possible)
+  isMoe?: boolean;
+  numExperts?: number;      // n_routed_experts
+  moeInterSize?: number;    // moe_intermediate_size (per expert)
+  moeLayers?: number;       // number of MoE layers (= total_layers - first_k_dense_replace)
 };
 
 export const PRESETS: ModelPreset[] = [
@@ -75,6 +95,10 @@ export const PRESETS: ModelPreset[] = [
     kvHeads: 128,
     mlaDc: 512,
     mlaDr: 64,
+    isMoe: true,
+    numExperts: 256,
+    moeInterSize: 2048,
+    moeLayers: 58,
   },
   {
     id: 'deepseek-v2',
@@ -227,10 +251,15 @@ export const PRESETS: ModelPreset[] = [
     hiddenSize: 4096,
     qHeads: 32,
     kvHeads: 8,
+    isMoe: true,
+    numExperts: 8,
+    moeInterSize: 14336,
+    moeLayers: 32,
   }
 ];
 
 export interface CalculatorState {
+  // Model architecture
   attentionType: 'standard' | 'mla' | 'hybrid';
   parameters: number;
   layers: number;
@@ -240,12 +269,28 @@ export interface CalculatorState {
   mlaDc: number;
   mlaDr: number;
   fullAttnLayers: number;
+  // Inference config
   seqLength: number;
   batchSize: number;
   precision: number;
   presetId: string;
+  maxNumBatchedTokens: number;
+  // MoE (Mixture of Experts)
+  isMoe: boolean;
+  numExperts: number;      // n_routed_experts
+  moeInterSize: number;    // moe_intermediate_size (per expert)
+  moeLayers: number;       // number of MoE layers
+  enableExpertParallel: boolean;
+  // Parallelism & deployment
+  dp: number;
   tp: number;
   pp: number;
   gpuMemory: number;
   gpuUtilization: number;
+  // vLLM-specific parameters
+  kvCacheDtype: string;
+  blockSize: number;
+  maxModelLen: number;
+  enforceEager: boolean;
+  enablePrefixCaching: boolean;
 }

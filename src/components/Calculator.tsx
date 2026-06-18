@@ -1,6 +1,6 @@
 import { ChangeEvent, useState, useMemo } from 'react';
-import { Settings, Cpu, Layers, HardDrive, Database, Zap, AlignLeft, Hash, Info, Type, Server } from 'lucide-react';
-import { PRESETS, PRECISIONS, CalculatorState } from '../types';
+import { Settings, Cpu, Layers, HardDrive, Database, Zap, AlignLeft, Hash, Info, Type, Server, Sliders } from 'lucide-react';
+import { PRESETS, PRECISIONS, KV_CACHE_DTYPES, CalculatorState } from '../types';
 import { calculateKV, formatBytes } from '../lib/calc';
 import { parseConfigJson } from '../lib/configParser';
 import { motion } from 'motion/react';
@@ -21,11 +21,23 @@ export default function Calculator() {
     fullAttnLayers: 20,
     seqLength: 8192,
     batchSize: 1,
+    maxNumBatchedTokens: 8192,
     precision: 2, // Default FP16
+    isMoe: false,
+    numExperts: 0,
+    moeInterSize: 0,
+    moeLayers: 0,
+    enableExpertParallel: false,
     tp: 1,
     pp: 1,
     gpuMemory: 80,
     gpuUtilization: 0.9,
+    dp: 1,
+    kvCacheDtype: 'auto',
+    blockSize: 16,
+    maxModelLen: 8192,
+    enforceEager: false,
+    enablePrefixCaching: true,
   });
 
   const groupedPresets = useMemo(() => {
@@ -56,16 +68,40 @@ export default function Calculator() {
           mlaDc: preset.mlaDc ?? prev.mlaDc,
           mlaDr: preset.mlaDr ?? prev.mlaDr,
           fullAttnLayers: preset.fullAttnLayers ?? prev.fullAttnLayers,
+          isMoe: preset.isMoe ?? false,
+          numExperts: preset.numExperts ?? 0,
+          moeInterSize: preset.moeInterSize ?? 0,
+          moeLayers: preset.moeLayers ?? 0,
+          maxModelLen: prev.maxModelLen,
         }));
       }
     }
   };
 
   const handleChange = (field: keyof CalculatorState) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    let value: number | string = e.target.value;
+    let value: number | string | boolean = e.target.value;
+    
+    // Handle checkbox/boolean fields
+    if (field === 'enforceEager' || field === 'enablePrefixCaching' || field === 'enableExpertParallel') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setState(prev => ({ ...prev, [field]: checked }));
+      return;
+    }
+    
+    // Handle select (string) fields like kvCacheDtype
+    if (field === 'kvCacheDtype' || field === 'presetId' || field === 'attentionType') {
+      setState(prev => {
+        const newState = { ...prev, [field]: value };
+        if (['layers', 'hiddenSize', 'qHeads', 'kvHeads', 'mlaDc', 'mlaDr', 'fullAttnLayers', 'attentionType'].includes(field as string)) {
+          newState.presetId = 'custom';
+        }
+        return newState as CalculatorState;
+      });
+      return;
+    }
     
     // Parse numbers for numeric fields
-    if (field !== 'presetId' && field !== 'attentionType' && e.target.type === 'number') {
+    if (e.target.type === 'number') {
       value = parseInt(e.target.value, 10);
       if (isNaN(value) || value < 0) value = 0;
     }
@@ -78,6 +114,13 @@ export default function Calculator() {
       // If user manually changes architecture, set preset to 'custom'
       if (['layers', 'hiddenSize', 'qHeads', 'kvHeads', 'mlaDc', 'mlaDr', 'fullAttnLayers', 'attentionType'].includes(field as string)) {
         newState.presetId = 'custom';
+      }
+      // Auto-set isMoe when numExperts changes
+      if (field === 'numExperts') {
+        newState.isMoe = (newState.numExperts as number) > 0;
+      }
+      if (field === 'moeLayers' && (newState.moeLayers as number) > 0 && (newState.numExperts as number) > 0) {
+        newState.isMoe = true;
       }
       return newState as CalculatorState;
     });
@@ -263,6 +306,36 @@ export default function Calculator() {
                   />
                 </>
               )}
+
+              {/* MoE (Mixture of Experts) Fields — shown when isMoe or when numExperts > 0 */}
+              {(state.isMoe || state.numExperts > 0) && (
+                <>
+                  <hr className="sm:col-span-2 border-zinc-200 dark:border-zinc-800 my-2" />
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-medium text-pink-600 dark:text-pink-400 mb-2">
+                      MoE {t('isMoe')} — {t('numExperts')}: {state.numExperts || '–'}
+                    </p>
+                  </div>
+                  <InputGroup 
+                    label={t('numExperts')} 
+                    icon={<Hash className="w-4 h-4" />}
+                    value={state.numExperts}
+                    onChange={handleChange('numExperts')}
+                  />
+                  <InputGroup 
+                    label={t('moeInterSize')} 
+                    icon={<Hash className="w-4 h-4" />}
+                    value={state.moeInterSize}
+                    onChange={handleChange('moeInterSize')}
+                  />
+                  <InputGroup 
+                    label={t('moeLayers')} 
+                    icon={<Layers className="w-4 h-4" />}
+                    value={state.moeLayers}
+                    onChange={handleChange('moeLayers')}
+                  />
+                </>
+              )}
             </div>
           </div>
         </motion.div>
@@ -311,6 +384,14 @@ export default function Calculator() {
               value={state.batchSize}
               onChange={handleChange('batchSize')}
             />
+            <InputGroup 
+              label={t('maxNumBatchedTokens')} 
+              icon={<Layers className="w-4 h-4" />}
+              value={state.maxNumBatchedTokens}
+              onChange={handleChange('maxNumBatchedTokens')}
+              step={1024}
+              helpText={t('maxNumBatchedTokensHelp')}
+            />
           </div>
         </motion.div>
 
@@ -349,6 +430,41 @@ export default function Calculator() {
               value={state.pp}
               onChange={handleChange('pp')}
             />
+            <InputGroup 
+              label={t('dataParallel')} 
+              icon={<Server className="w-4 h-4" />}
+              value={state.dp}
+              onChange={handleChange('dp')}
+              helpText={t('dpHelp')}
+            />
+            <hr className="sm:col-span-2 border-zinc-200 dark:border-zinc-800 my-2" />
+            <div className="sm:col-span-2 space-y-2">
+              <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
+                <Cpu className="w-4 h-4" /> {t('enableExpertParallel')}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer py-3">
+                <input 
+                  type="checkbox" 
+                  checked={state.enableExpertParallel} 
+                  onChange={handleChange('enableExpertParallel')}
+                  className="text-pink-500 focus:ring-pink-500 w-4 h-4"
+                />
+                {t('epHelp')}
+              </label>
+            </div>
+            {state.isMoe && (
+              <>
+                <div className="sm:col-span-2 space-y-1">
+                  <p className="text-xs text-zinc-500 font-mono">
+                    {t('expertParams')}: {results.expertParams > 0 ? (results.expertParams / 1e9).toFixed(1) + 'B' : '–'}
+                    {' · '}{t('denseParams')}: {results.expertParams > 0 ? ((state.parameters || 0) - results.expertParams / 1e9).toFixed(1) + 'B' : (state.parameters || 0) + 'B'}
+                    {state.enableExpertParallel && results.epSize > 1 && (
+                      <> {' · '}{t('epSize')}: TP×DP={results.epSize} {' · '}{t('localExperts')}: ~{results.localNumExperts}</>
+                    )}
+                  </p>
+                </div>
+              </>
+            )}
             <hr className="sm:col-span-2 border-zinc-200 dark:border-zinc-800 my-2" />
             <InputGroup 
               label={t('gpuMemory')} 
@@ -363,6 +479,85 @@ export default function Calculator() {
               onChange={handleChange('gpuUtilization')}
               step={0.05}
             />
+          </div>
+        </motion.div>
+
+        {/* vLLM Advanced Config Panel */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.25 }}
+          className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm"
+        >
+          <div className="flex items-center gap-3 mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+            <div className="p-2 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <h2 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">{t('vllmConfig')}</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="sm:col-span-2 space-y-2">
+              <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
+                <Database className="w-4 h-4" /> {t('kvCacheDtype')}
+              </label>
+              <select 
+                value={state.kvCacheDtype}
+                onChange={handleChange('kvCacheDtype')}
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none"
+              >
+                {KV_CACHE_DTYPES.map(d => (
+                  <option key={d.key} value={d.key}>{d.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-zinc-500">{t('kvCacheDtypeHelp')}</p>
+            </div>
+
+            <InputGroup 
+              label={t('blockSize')} 
+              icon={<Layers className="w-4 h-4" />}
+              value={state.blockSize}
+              onChange={handleChange('blockSize')}
+              helpText={t('blockSizeHelp')}
+            />
+            <InputGroup 
+              label={t('maxModelLen')} 
+              icon={<AlignLeft className="w-4 h-4" />}
+              value={state.maxModelLen}
+              onChange={handleChange('maxModelLen')}
+              step={1024}
+              helpText={t('maxModelLenHelp')}
+            />
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
+                <Zap className="w-4 h-4" /> {t('enforceEager')}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer py-3">
+                <input 
+                  type="checkbox" 
+                  checked={state.enforceEager} 
+                  onChange={handleChange('enforceEager')}
+                  className="text-amber-500 focus:ring-amber-500 w-4 h-4"
+                />
+                {t('enforceEagerHelp')}
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
+                <Database className="w-4 h-4" /> {t('enablePrefixCaching')}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer py-3">
+                <input 
+                  type="checkbox" 
+                  checked={state.enablePrefixCaching} 
+                  onChange={handleChange('enablePrefixCaching')}
+                  className="text-amber-500 focus:ring-amber-500 w-4 h-4"
+                />
+                {t('enablePrefixCachingHelp')}
+              </label>
+            </div>
           </div>
         </motion.div>
 
@@ -404,11 +599,11 @@ export default function Calculator() {
                  />
                  <ResultRow 
                    label={t('weightPerGPU')}
-                   value={formatBytes(results.weightPerGPU)}
+                   value={formatBytes(results.weightPerGPU) + (state.isMoe && results.expertWeightTotal > 0 ? ' (D:' + formatBytes(results.denseWeightPerGPU).split(' ')[0] + ' E:' + formatBytes(results.expertWeightPerGPU).split(' ')[0] + ')' : '')}
                  />
                  <ResultRow 
                    label={t('overheadVram')}
-                   value="~ 5 GB"
+                   value={formatBytes(results.overheadPerGPU)}
                  />
               </div>
            </div>
@@ -429,6 +624,36 @@ export default function Calculator() {
              <ResultRow 
                label={t('maxTokensPerGpu')}
                value={results.maxTokensPerGPU > 0 ? Math.floor(results.maxTokensPerGPU).toLocaleString() : 'Out of Memory'}
+               highlight
+             />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-sm font-medium text-zinc-800 dark:text-zinc-200 mb-4">{t('vllmBlockMetrics')}</h3>
+          <div className="space-y-3">
+             <ResultRow 
+               label={t('numBlocks')}
+               value={results.numBlocks.toLocaleString()}
+             />
+             <ResultRow 
+               label={t('kvCacheTokens')}
+               value={results.kvCacheTokensPerGPU.toLocaleString()}
+               highlight
+             />
+             <ResultRow 
+               label={t('maxConcurrency')}
+               value={results.maxConcurrency > 0 ? results.maxConcurrency.toFixed(2) + 'x' : 'Out of Memory'}
+               highlight
+             />
+             <hr className="my-2 border-zinc-200 dark:border-zinc-800" />
+             <ResultRow 
+               label={t('totalGpus')}
+               value={results.totalGpus.toLocaleString() + ' (TP=' + state.tp + ' PP=' + state.pp + ' DP=' + state.dp + ')' + (state.enableExpertParallel ? ' EP=on' : '')}
+             />
+             <ResultRow 
+               label={t('totalClusterKVTokens')}
+               value={results.totalClusterKVTokens.toLocaleString()}
                highlight
              />
           </div>
@@ -495,6 +720,7 @@ export default function Calculator() {
           <li><strong>{t('expAct')}</strong> {t('expActDesc')}</li>
           <li><strong>{t('expTpPp')}</strong> {t('expTpPpDesc')}</li>
           <li><strong>{t('expDp')}</strong> {t('expDpDesc')}</li>
+          <li><strong>{t('expEp')}</strong> {t('expEpDesc')}</li>
         </ul>
         <p className="pt-2 italic text-xs text-zinc-500">{t('expEnd')}</p>
       </div>
@@ -550,4 +776,3 @@ function ResultRow({ label, value, highlight = false }: { label: string, value: 
     </div>
   );
 }
-
