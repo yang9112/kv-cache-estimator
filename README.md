@@ -1,5 +1,8 @@
 # KV Cache Calculator
 
+[![CI](https://github.com/yang9112/kv-cache-estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/yang9112/kv-cache-estimator/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A lightweight, interactive web tool for estimating GPU memory requirements of KV cache in large language models.
 
 ## Features
@@ -36,6 +39,10 @@ The calculator estimates KV cache memory based on:
 - Lucide Icons
 - Framer Motion
 
+## Contributing
+
+Contributions are welcome! Please feel free to open issues or submit pull requests.
+
 ## License
 
-MIT
+[MIT](LICENSE)
