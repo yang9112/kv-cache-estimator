@@ -62,7 +62,13 @@ const translations = {
     expTpPpDesc: "Weights and KV Cache are divided by (TP × PP). E.g. A 140GB model with TP=8 requires 17.5GB per GPU.",
     expDp: "DP (Data Parallelism):",
     expDpDesc: "Does not reduce memory per GPU. It replicates the model across GPUs to increase throughput.",
-    expEnd: "Estimation methodology based on typical vLLM / TensorRT-LLM allocations."
+    expEnd: "Estimation methodology based on typical vLLM / TensorRT-LLM allocations.",
+    gpuMemory: "GPU Memory Cap (GB per GPU)",
+    gpuUtilization: "GPU Mem Utilization",
+    vllmBudgetHeading: "vLLM KV Cache Budget",
+    maxTokensPerGpu: "Max Concurrent Tokens (per GPU)",
+    vllmHelpText: "Calculated based on usable GPU memory derived from specified utilization.",
+    maxUsableKvBudget: "Max Usable KV Budget (per GPU)"
   },
   zh: {
     title: "KV Cache 计算器",
@@ -123,7 +129,13 @@ const translations = {
     expTpPpDesc: "单卡分担的显存将同时除以 (TP × PP)。",
     expDp: "数据并行 (DP) 的影响:",
     expDpDesc: "DP 不切分模型，每个 Replica 都有完整模型和 KV。所以 DP 仅用于提升吞吐并发，完全不会减少单卡显存要求。",
-    expEnd: "以上规则适用于 vLLM、SGLang、TensorRT-LLM 等主流大模型推理引擎。"
+    expEnd: "以上规则适用于 vLLM、SGLang、TensorRT-LLM 等主流大模型推理引擎。",
+    gpuMemory: "单卡显存上限 (GB)",
+    gpuUtilization: "显存占用率 (gpu_memory_utilization)",
+    vllmBudgetHeading: "vLLM KV 显存预算",
+    maxTokensPerGpu: "最大并发 Tokens 数 (单卡)",
+    vllmHelpText: "根据显存占用率和模型权重等开销，推算出的 KV Cache 可用上限。",
+    maxUsableKvBudget: "最大可用 KV 显存 (单卡)"
   }
 };
 

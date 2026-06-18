@@ -43,6 +43,14 @@ export const calculateKV = (state: CalculatorState) => {
   const overheadPerGPU = 5 * 1024 * 1024 * 1024; // 5 GB for Workspace, CUDA graph, Comm Buffer etc
   const totalPerGPU = kvPerGPU + weightPerGPU + overheadPerGPU;
 
+  // vLLM calculations
+  const totalUsablePerGPU = (state.gpuMemory || 80) * 1024 * 1024 * 1024 * (state.gpuUtilization || 0.9);
+  let vllmKvBudgetPerGPU = totalUsablePerGPU - weightPerGPU - overheadPerGPU;
+  if (vllmKvBudgetPerGPU < 0) vllmKvBudgetPerGPU = 0;
+  
+  const tokenSizePerGPU = sizePerTokenTotal / parallelism;
+  const maxTokensPerGPU = tokenSizePerGPU > 0 ? vllmKvBudgetPerGPU / tokenSizePerGPU : 0;
+
   return {
     headDim,
     sizePerTokenPerLayer,
@@ -53,6 +61,8 @@ export const calculateKV = (state: CalculatorState) => {
     weightTotal,
     weightPerGPU,
     overheadPerGPU,
-    totalPerGPU
+    totalPerGPU,
+    vllmKvBudgetPerGPU,
+    maxTokensPerGPU
   };
 };

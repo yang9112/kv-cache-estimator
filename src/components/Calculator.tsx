@@ -24,7 +24,18 @@ export default function Calculator() {
     precision: 2, // Default FP16
     tp: 1,
     pp: 1,
+    gpuMemory: 80,
+    gpuUtilization: 0.9,
   });
+
+  const groupedPresets = useMemo(() => {
+    const groups: Record<string, typeof PRESETS> = {};
+    PRESETS.forEach(p => {
+      if (!groups[p.family]) groups[p.family] = [];
+      groups[p.family].push(p);
+    });
+    return groups;
+  }, []);
 
   const handlePresetChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -58,7 +69,7 @@ export default function Calculator() {
       value = parseInt(e.target.value, 10);
       if (isNaN(value) || value < 0) value = 0;
     }
-    if (field === 'precision') {
+    if (field === 'precision' || field === 'gpuUtilization') {
       value = parseFloat(e.target.value);
     }
 
@@ -143,8 +154,12 @@ export default function Calculator() {
                 onChange={handlePresetChange}
                 className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
               >
-                {PRESETS.map(p => (
-                  <option key={p.id} value={p.id}>{p.id === 'custom' ? t('custom') : p.name}</option>
+                {Object.entries(groupedPresets).map(([family, presets]) => (
+                  <optgroup key={family} label={family === 'Custom' ? t('custom') : family}>
+                    {presets.map(p => (
+                      <option key={p.id} value={p.id}>{p.id === 'custom' ? t('custom') : p.name}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -334,6 +349,20 @@ export default function Calculator() {
               value={state.pp}
               onChange={handleChange('pp')}
             />
+            <hr className="sm:col-span-2 border-zinc-200 dark:border-zinc-800 my-2" />
+            <InputGroup 
+              label={t('gpuMemory')} 
+              icon={<HardDrive className="w-4 h-4" />}
+              value={state.gpuMemory}
+              onChange={handleChange('gpuMemory')}
+            />
+            <InputGroup 
+              label={t('gpuUtilization')} 
+              icon={<Zap className="w-4 h-4" />}
+              value={state.gpuUtilization}
+              onChange={handleChange('gpuUtilization')}
+              step={0.05}
+            />
           </div>
         </motion.div>
 
@@ -383,6 +412,26 @@ export default function Calculator() {
                  />
               </div>
            </div>
+        </div>
+
+        {/* vLLM Metrics */}
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{t('vllmBudgetHeading')}</h3>
+          </div>
+          <p className="text-xs text-zinc-500 mb-4">{t('vllmHelpText')}</p>
+          <div className="space-y-3">
+             <ResultRow 
+               label={t('maxUsableKvBudget')}
+               value={formatBytes(results.vllmKvBudgetPerGPU)}
+               highlight
+             />
+             <ResultRow 
+               label={t('maxTokensPerGpu')}
+               value={results.maxTokensPerGPU > 0 ? Math.floor(results.maxTokensPerGPU).toLocaleString() : 'Out of Memory'}
+               highlight
+             />
+          </div>
         </div>
 
         <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">

@@ -13,6 +13,7 @@ export const PRECISIONS: Precision[] = [
 export type ModelPreset = {
   id: string;
   name: string;
+  family: string;
   attentionType: 'standard' | 'mla' | 'hybrid';
   parameters: number;
   layers: number;
@@ -28,6 +29,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'custom',
     name: 'Custom',
+    family: 'Custom',
     attentionType: 'standard',
     parameters: 7,
     layers: 32,
@@ -38,6 +40,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'deepseek-v4-pro',
     name: 'DeepSeek V4 Pro',
+    family: 'DeepSeek',
     attentionType: 'mla',
     parameters: 1000,
     layers: 61,
@@ -50,6 +53,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'deepseek-v4-flash',
     name: 'DeepSeek V4 Flash',
+    family: 'DeepSeek',
     attentionType: 'mla',
     parameters: 236,
     layers: 60,
@@ -62,6 +66,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'deepseek-v3',
     name: 'DeepSeek V3 / R1 (671B)',
+    family: 'DeepSeek',
     attentionType: 'mla',
     parameters: 671,
     layers: 61,
@@ -74,6 +79,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'deepseek-v2',
     name: 'DeepSeek V2 (236B)',
+    family: 'DeepSeek',
     attentionType: 'mla',
     parameters: 236,
     layers: 60,
@@ -86,6 +92,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'glm-5',
     name: 'GLM 5 / 5.1',
+    family: 'GLM',
     attentionType: 'mla',
     parameters: 150,
     layers: 78,
@@ -98,6 +105,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'glm-4-flash',
     name: 'GLM 4.7 Flash',
+    family: 'GLM',
     attentionType: 'mla',
     parameters: 12,
     layers: 47,
@@ -110,6 +118,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'kimi-k2.5',
     name: 'Kimi K2.5 / K2',
+    family: 'Moonshot (Kimi)',
     attentionType: 'mla',
     parameters: 200,
     layers: 61,
@@ -122,6 +131,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'minimax-m2.5',
     name: 'MiniMax M2.5 / M2',
+    family: 'MiniMax',
     attentionType: 'standard',
     parameters: 100,
     layers: 62,
@@ -132,6 +142,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'glm-4-9b',
     name: 'GLM 4 (9B)',
+    family: 'GLM',
     attentionType: 'standard',
     parameters: 9,
     layers: 40,
@@ -142,6 +153,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'qwen-3.5-397b',
     name: 'Qwen 3.5 / 3.6 (397B Hybrid)',
+    family: 'Qwen',
     attentionType: 'hybrid',
     parameters: 397,
     layers: 60,
@@ -153,6 +165,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'qwen-3-32b',
     name: 'Qwen 3 (32B GQA)',
+    family: 'Qwen',
     attentionType: 'standard',
     parameters: 32,
     layers: 64,
@@ -163,6 +176,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'llama-3-8b',
     name: 'LLaMA 3/3.1 (8B)',
+    family: 'LLaMA',
     attentionType: 'standard',
     parameters: 8,
     layers: 32,
@@ -173,6 +187,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'llama-3-70b',
     name: 'LLaMA 3/3.1 (70B)',
+    family: 'LLaMA',
     attentionType: 'standard',
     parameters: 70,
     layers: 80,
@@ -183,6 +198,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'qwen-2-72b',
     name: 'Qwen 2/2.5 (72B)',
+    family: 'Qwen',
     attentionType: 'standard',
     parameters: 72,
     layers: 80,
@@ -193,6 +209,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'llama-2-7b',
     name: 'LLaMA 2 (7B)',
+    family: 'LLaMA',
     attentionType: 'standard',
     parameters: 7,
     layers: 32,
@@ -203,6 +220,7 @@ export const PRESETS: ModelPreset[] = [
   {
     id: 'mixtral-8x7b',
     name: 'Mixtral 8x7B',
+    family: 'Mistral',
     attentionType: 'standard',
     parameters: 47,
     layers: 32,
@@ -228,4 +246,6 @@ export interface CalculatorState {
   presetId: string;
   tp: number;
   pp: number;
+  gpuMemory: number;
+  gpuUtilization: number;
 }
