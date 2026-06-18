@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0] - 2025-06-18
+
+### Added
+- GPU memory capacity and utilization inputs for deployment-aware estimation
+- vLLM KV cache budget calculation per GPU
+- Max concurrent tokens estimation based on available KV budget
+- Model presets grouped by family in dropdown (DeepSeek, GLM, Qwen, LLaMA, Mistral, MiniMax, Moonshot)
+
 ## [1.0.0] - 2025-06-18
 
 ### Added
