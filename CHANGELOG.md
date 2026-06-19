@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0] - 2026-06-20
+
+### Changed
+- Rewrote README with professional structure: Table of Contents, Supported Models table, Calculation Methodology section, Development commands
+- Project title renamed from "Calculator" to "Estimator" to match repository name
+- Formatted formulas with proper Unicode operators (`×`, `÷`) instead of ASCII `x`/`/`
+- Added bilingual "Supported Models" section listing all 17 built-in presets by family
+- Consolidated tech stack into a compact single-line layout
+
 ## [1.2.0] - 2025-06-20
 
 ### Added
