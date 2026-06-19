@@ -32,7 +32,12 @@ export const calculateKV = (state: CalculatorState) => {
   const hasPerTokenHeadScales = kvDtype.hasPerTokenHeadScales;
 
   // ── Head dimension ──
-  const headDim = state.attentionType === 'mla' ? 0 : state.hiddenSize / state.qHeads;
+  // head_dim: explicit (config.head_dim) takes priority over hidden/qHeads.
+  // Many newer models (MiniMax M2, Qwen3.5, DeepSeek V4 DSA) set head_dim
+  // independently of hidden_size/num_attention_heads.
+  const headDim = state.attentionType === 'mla'
+    ? 0
+    : (state.headDim > 0 ? state.headDim : state.hiddenSize / state.qHeads);
 
   // ── Per-token per-layer KV cache size ──
   let sizePerTokenPerLayer = 0;

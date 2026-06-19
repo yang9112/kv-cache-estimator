@@ -21,6 +21,9 @@ export function parseConfigJson(jsonStr: string, currentState: CalculatorState):
     let mlaDc = currentState.mlaDc;
     let mlaDr = currentState.mlaDr;
     let fullAttnLayers = currentState.fullAttnLayers;
+    // head_dim may be explicit in config (e.g. MiniMax M2, Qwen3.5, DeepSeek V4);
+    // otherwise derived later as hidden_size / num_attention_heads.
+    const headDim = config.head_dim ?? 0;
 
     // DeepSeek MLA architecture detection (kv_lora_rank is the key marker)
     if (config.kv_lora_rank !== undefined) {
@@ -59,10 +62,13 @@ export function parseConfigJson(jsonStr: string, currentState: CalculatorState):
       hiddenSize: Number(hiddenSize),
       qHeads: Number(qHeads),
       kvHeads: Number(kvHeads),
+      headDim: Number(headDim),
       mlaDc: Number(mlaDc),
       mlaDr: Number(mlaDr),
       fullAttnLayers: Number(fullAttnLayers),
       maxModelLen: Number(maxModelLen),
+      // Keep seqLength in sync with maxModelLen so the context box never exceeds max_len
+      seqLength: Math.min(Number(currentState.seqLength), Number(maxModelLen)),
       parameters,
       isMoe,
       numExperts: Number(numExperts),

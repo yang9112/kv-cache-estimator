@@ -16,6 +16,7 @@ export default function Calculator() {
     hiddenSize: 4096,
     qHeads: 32,
     kvHeads: 8,
+    headDim: 0,
     mlaDc: 512,
     mlaDr: 64,
     fullAttnLayers: 20,
@@ -65,6 +66,7 @@ export default function Calculator() {
           hiddenSize: preset.hiddenSize,
           qHeads: preset.qHeads,
           kvHeads: preset.kvHeads,
+          headDim: preset.headDim ?? 0,
           mlaDc: preset.mlaDc ?? prev.mlaDc,
           mlaDr: preset.mlaDr ?? prev.mlaDr,
           fullAttnLayers: preset.fullAttnLayers ?? prev.fullAttnLayers,
@@ -76,6 +78,21 @@ export default function Calculator() {
         }));
       }
     }
+  };
+
+  // seqLength and maxModelLen are entered in K (1K = 1024 tokens); state stores raw token counts
+  const handleLenKChange = (field: 'seqLength' | 'maxModelLen') => (e: ChangeEvent<HTMLInputElement>) => {
+    let value = parseFloat(e.target.value);
+    if (isNaN(value) || value < 0) value = 0;
+    const tokens = Math.round(value * 1024);
+    setState(prev => {
+      // Keep maxModelLen >= seqLength so the concurrency denominator stays valid
+      // (vLLM requires max_model_len to cover the context you intend to run).
+      if (field === 'seqLength') {
+        return { ...prev, seqLength: tokens, maxModelLen: Math.max(prev.maxModelLen, tokens) };
+      }
+      return { ...prev, maxModelLen: tokens };
+    });
   };
 
   const handleChange = (field: keyof CalculatorState) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -371,11 +388,11 @@ export default function Calculator() {
             </div>
             
             <InputGroup 
-              label={t('seqLength')} 
+              label={t('seqLength')}
               icon={<AlignLeft className="w-4 h-4" />}
-              value={state.seqLength}
-              onChange={handleChange('seqLength')}
-              step={1024}
+              value={state.seqLength / 1024}
+              onChange={handleLenKChange('seqLength')}
+              step={1}
               helpText={t('seqLengthHelp')}
             />
             <InputGroup 
@@ -521,11 +538,11 @@ export default function Calculator() {
               helpText={t('blockSizeHelp')}
             />
             <InputGroup 
-              label={t('maxModelLen')} 
+              label={t('maxModelLen')}
               icon={<AlignLeft className="w-4 h-4" />}
-              value={state.maxModelLen}
-              onChange={handleChange('maxModelLen')}
-              step={1024}
+              value={state.maxModelLen / 1024}
+              onChange={handleLenKChange('maxModelLen')}
+              step={1}
               helpText={t('maxModelLenHelp')}
             />
 
