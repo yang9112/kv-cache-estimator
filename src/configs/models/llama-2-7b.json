@@ -1,0 +1,12 @@
+{
+  "id": "llama-2-7b",
+  "name": "LLaMA 2 (7B)",
+  "family": "LLaMA",
+  "attentionType": "standard",
+  "parameters": 7,
+  "layers": 32,
+  "hiddenSize": 4096,
+  "qHeads": 32,
+  "kvHeads": 32,
+  "description": "Dense MHA (no GQA in Llama 2): kvHeads = qHeads = 32."
+}

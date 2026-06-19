@@ -1,0 +1,12 @@
+{
+  "id": "glm-4-9b",
+  "name": "GLM 4 (9B)",
+  "family": "GLM",
+  "attentionType": "standard",
+  "parameters": 9,
+  "layers": 40,
+  "hiddenSize": 4096,
+  "qHeads": 32,
+  "kvHeads": 2,
+  "description": "Dense GQA. kvHeads = multi_query_group_num (MQA-style, 2 KV heads)."
+}

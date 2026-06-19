@@ -1,8 +1,9 @@
 import { ChangeEvent, useState, useMemo } from 'react';
-import { Settings, Cpu, Layers, HardDrive, Database, Zap, AlignLeft, Hash, Info, Type, Server, Sliders } from 'lucide-react';
-import { PRESETS, PRECISIONS, KV_CACHE_DTYPES, CalculatorState } from '../types';
+import { Settings, Cpu, Layers, HardDrive, Database, Zap, AlignLeft, Hash, Info, Type, Server, Sliders, Save, Trash2, Download, X } from 'lucide-react';
+import { PRECISIONS, KV_CACHE_DTYPES, CalculatorState } from '../types';
 import { calculateKV, formatBytes } from '../lib/calc';
 import { parseConfigJson } from '../lib/configParser';
+import { usePresets, presetFromState, downloadPresetJson } from '../lib/presets';
 import { motion } from 'motion/react';
 import { useI18n } from '../lib/i18n';
 
@@ -41,18 +42,13 @@ export default function Calculator() {
     enablePrefixCaching: true,
   });
 
-  const groupedPresets = useMemo(() => {
-    const groups: Record<string, typeof PRESETS> = {};
-    PRESETS.forEach(p => {
-      if (!groups[p.family]) groups[p.family] = [];
-      groups[p.family].push(p);
-    });
-    return groups;
-  }, []);
+  const { groupedPresets, findPreset, isUserPreset, addUserPreset, removeUserPreset } = usePresets();
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [presetName, setPresetName] = useState('');
 
   const handlePresetChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
-    const preset = PRESETS.find(p => p.id === id);
+    const preset = findPreset(id);
     if (preset) {
       if (id === 'custom') {
         setState(prev => ({ ...prev, presetId: id }));
@@ -77,6 +73,35 @@ export default function Calculator() {
           maxModelLen: prev.maxModelLen,
         }));
       }
+    }
+  };
+
+  const handleSavePreset = () => {
+    const name = presetName.trim();
+    if (!name) {
+      alert(t('presetNameRequired'));
+      return;
+    }
+    const preset = presetFromState(name, state);
+    addUserPreset(preset);
+    setState(prev => ({ ...prev, presetId: preset.id }));
+    setPresetName('');
+    setShowSaveForm(false);
+  };
+
+  const handleDeletePreset = () => {
+    if (state.presetId && isUserPreset(state.presetId)) {
+      removeUserPreset(state.presetId);
+      setState(prev => ({ ...prev, presetId: 'custom' }));
+    }
+  };
+
+  const handleExportPreset = () => {
+    const preset = findPreset(state.presetId);
+    if (preset && preset.id !== 'custom') {
+      downloadPresetJson(preset);
+    } else {
+      downloadPresetJson(presetFromState('custom-config', state));
     }
   };
 
@@ -199,14 +224,40 @@ export default function Calculator() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                 <span>{t('modelPreset')}</span>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-1.5 items-center flex-wrap justify-end">
                   <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                     {architectureType}
                   </span>
-                  <label className="text-xs cursor-pointer px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors shadow-sm">
+                  <label className="text-xs cursor-pointer px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors shadow-sm flex items-center gap-1">
                     {t('importConfig')}
                     <input type="file" accept=".json" className="hidden" onChange={handleFileChange} />
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowSaveForm(s => !s); setPresetName(''); }}
+                    title={t('saveAsPreset')}
+                    className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors shadow-sm flex items-center gap-1"
+                  >
+                    <Save className="w-3 h-3" /> {t('saveAsPreset')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportPreset}
+                    title={t('exportConfig')}
+                    className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors shadow-sm flex items-center gap-1"
+                  >
+                    <Download className="w-3 h-3" /> {t('exportConfig')}
+                  </button>
+                  {isUserPreset(state.presetId) && (
+                    <button
+                      type="button"
+                      onClick={handleDeletePreset}
+                      title={t('deletePreset')}
+                      className="text-xs px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors shadow-sm flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" /> {t('deletePreset')}
+                    </button>
+                  )}
                 </div>
               </label>
               <select 
@@ -215,13 +266,35 @@ export default function Calculator() {
                 className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
               >
                 {Object.entries(groupedPresets).map(([family, presets]) => (
-                  <optgroup key={family} label={family === 'Custom' ? t('custom') : family}>
+                  <optgroup key={family} label={family === 'Custom' ? t('custom') : family === 'My Presets' ? t('myPresets') : family}>
                     {presets.map(p => (
                       <option key={p.id} value={p.id}>{p.id === 'custom' ? t('custom') : p.name}</option>
                     ))}
                   </optgroup>
                 ))}
               </select>
+              {showSaveForm && (
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={presetName}
+                    onChange={e => setPresetName(e.target.value)}
+                    placeholder={t('presetNamePlaceholder')}
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSavePreset();
+                      if (e.key === 'Escape') { setShowSaveForm(false); setPresetName(''); }
+                    }}
+                    className="flex-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none"
+                  />
+                  <button type="button" onClick={handleSavePreset} title={t('saveAsPreset')} className="px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center">
+                    <Save className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => { setShowSaveForm(false); setPresetName(''); }} title={t('cancel')} className="px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

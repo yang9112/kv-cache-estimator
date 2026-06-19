@@ -1,0 +1,18 @@
+{
+  "id": "glm-4-flash",
+  "name": "GLM 4.7 Flash (30B-A3B)",
+  "family": "GLM",
+  "attentionType": "mla",
+  "parameters": 30,
+  "layers": 47,
+  "hiddenSize": 2048,
+  "qHeads": 20,
+  "kvHeads": 20,
+  "mlaDc": 512,
+  "mlaDr": 64,
+  "isMoe": true,
+  "numExperts": 64,
+  "moeInterSize": 1536,
+  "moeLayers": 46,
+  "description": "31.22B total, 3B activated (HF safetensors.total). MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=64, moe_intermediate_size=1536, first_k_dense_replace=1 -> 46 MoE layers."
+}

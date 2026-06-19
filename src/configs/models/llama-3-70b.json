@@ -1,0 +1,12 @@
+{
+  "id": "llama-3-70b",
+  "name": "LLaMA 3/3.1 (70B)",
+  "family": "LLaMA",
+  "attentionType": "standard",
+  "parameters": 70,
+  "layers": 80,
+  "hiddenSize": 8192,
+  "qHeads": 64,
+  "kvHeads": 8,
+  "description": "Dense GQA. head_dim derived as hidden/qHeads = 128."
+}

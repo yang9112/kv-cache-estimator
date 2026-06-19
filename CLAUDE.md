@@ -16,7 +16,7 @@ npm run preview   # Preview production build
 npm run clean     # Remove dist/
 ```
 
-No test framework is configured. There are no tests.
+No formal test framework is configured. `npm run verify` runs `scripts/verify-presets.ts`, which loads every JSON preset from `src/configs/models/` and checks MoE/EP math and head_dim resolution. `npm test` runs `scripts/test-presets.ts`, which covers normalizePreset validation (required-field > 0 checks), dedupeById, presetFromState round-trips (standard / MLA / hybrid / MoE), and groupPresets family ordering — all under plain Node via tsx.
 
 ## Architecture
 
@@ -26,7 +26,12 @@ No test framework is configured. There are no tests.
 
 - `src/main.tsx` — Entry point, renders `<App />` into `#root`
 - `src/App.tsx` — Root component; wraps in `LanguageProvider`, renders header + `<Calculator />`
-- `src/types.ts` — `Precision`, `ModelPreset`, `CalculatorState` types; `PRESETS` array (hardcoded model presets); `PRECISIONS` array
+- `src/types.ts` — `Precision`, `KVCacheDType`, `CalculatorState` types; `PRECISIONS` / `KV_CACHE_DTYPES` arrays; re-exports `ModelPreset` from the config layer
+- `src/configs/` — Config-driven model presets (no longer hardcoded in code):
+  - `schema.ts` — `ModelPreset` type, `DEFAULT_PRESET_TEMPLATE`, `FAMILY_ORDER`, `normalizePreset()` validation
+  - `models/*.json` — one JSON file per built-in preset, auto-discovered at build time via `import.meta.glob` (add/remove a file = add/remove a preset; no registry to edit)
+  - `builtins.ts` — globs `models/*.json` → `BUILTIN_PRESETS` + the `CUSTOM_PRESET` pseudo-preset
+- `src/lib/presets.ts` — `usePresets` hook merging built-ins + localStorage user presets (runtime add/delete/export), family-grouped for the dropdown
 - `src/components/Calculator.tsx` — Monolithic ~550-line component with all UI state and layout. Contains inline `InputGroup` and `ResultRow` subcomponents. Two-column layout: inputs left, results right
 - `src/lib/calc.ts` — Core calculation logic (`calculateKV`, `computeExpertParams`, `formatBytes`). Three KV formulas:
   - Standard: `2 × kv_heads × head_dim × precision × layers × seq_len × batch_size`

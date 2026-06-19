@@ -101,7 +101,14 @@ const translations = {
     isMoe: "MoE Model",
     numExperts: "Routed Experts (num_experts)",
     moeInterSize: "Expert Intermediate (moe_intermediate_size)",
-    moeLayers: "MoE Layers"
+    moeLayers: "MoE Layers",
+    saveAsPreset: "Save as Preset",
+    exportConfig: "Export",
+    deletePreset: "Delete Preset",
+    presetNamePlaceholder: "Preset name...",
+    myPresets: "My Presets",
+    presetNameRequired: "Please enter a preset name.",
+    cancel: "Cancel"
   },
   zh: {
     title: "KV Cache 计算器",
@@ -201,7 +208,14 @@ const translations = {
     isMoe: "MoE 模型",
     numExperts: "路由专家数 (num_experts)",
     moeInterSize: "专家中间维度 (moe_intermediate_size)",
-    moeLayers: "MoE 层数"
+    moeLayers: "MoE 层数",
+    saveAsPreset: "存为预设",
+    exportConfig: "导出",
+    deletePreset: "删除预设",
+    presetNamePlaceholder: "预设名称...",
+    myPresets: "我的预设",
+    presetNameRequired: "请输入预设名称",
+    cancel: "取消"
   }
 };
 

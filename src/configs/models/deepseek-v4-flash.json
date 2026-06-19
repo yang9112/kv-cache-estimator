@@ -1,0 +1,18 @@
+{
+  "id": "deepseek-v4-flash",
+  "name": "DeepSeek V4 Flash (284B)",
+  "family": "DeepSeek",
+  "attentionType": "mla",
+  "parameters": 284,
+  "layers": 43,
+  "hiddenSize": 4096,
+  "qHeads": 64,
+  "kvHeads": 1,
+  "mlaDc": 512,
+  "mlaDr": 0,
+  "isMoe": true,
+  "numExperts": 256,
+  "moeInterSize": 2048,
+  "moeLayers": 43,
+  "description": "284B total (13B activated). DSA attention like V4 Pro: shared K==V of head_dim=512 (mlaDc=head_dim, mlaDr=0). All 43 layers MoE. Source: official V4 README."
+}

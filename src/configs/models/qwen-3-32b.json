@@ -1,0 +1,13 @@
+{
+  "id": "qwen-3-32b",
+  "name": "Qwen 3 (32B GQA)",
+  "family": "Qwen",
+  "attentionType": "standard",
+  "parameters": 32,
+  "layers": 64,
+  "hiddenSize": 5120,
+  "qHeads": 64,
+  "kvHeads": 8,
+  "headDim": 128,
+  "description": "Dense GQA. num_attention_heads=64, num_key_value_heads=8, explicit head_dim=128 (= 5120/64)."
+}

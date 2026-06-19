@@ -1,0 +1,18 @@
+{
+  "id": "deepseek-v3",
+  "name": "DeepSeek V3 / R1 (671B)",
+  "family": "DeepSeek",
+  "attentionType": "mla",
+  "parameters": 671,
+  "layers": 61,
+  "hiddenSize": 7168,
+  "qHeads": 128,
+  "kvHeads": 128,
+  "mlaDc": 512,
+  "mlaDr": 64,
+  "isMoe": true,
+  "numExperts": 256,
+  "moeInterSize": 2048,
+  "moeLayers": 58,
+  "description": "671B total. MLA: kv_lora_rank=512 (mlaDc), qk_rope_head_dim=64 (mlaDr). MoE: n_routed_experts=256, moe_intermediate_size=2048, first_k_dense_replace=3 -> 58 MoE layers."
+}

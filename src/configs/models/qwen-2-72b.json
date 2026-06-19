@@ -1,0 +1,12 @@
+{
+  "id": "qwen-2-72b",
+  "name": "Qwen 2/2.5 (72B)",
+  "family": "Qwen",
+  "attentionType": "standard",
+  "parameters": 72,
+  "layers": 80,
+  "hiddenSize": 8192,
+  "qHeads": 64,
+  "kvHeads": 8,
+  "description": "Dense GQA. head_dim derived as hidden/qHeads = 128."
+}

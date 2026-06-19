@@ -1,0 +1,18 @@
+{
+  "id": "glm-5",
+  "name": "GLM 5 / 5.1 (754B)",
+  "family": "GLM",
+  "attentionType": "mla",
+  "parameters": 754,
+  "layers": 78,
+  "hiddenSize": 6144,
+  "qHeads": 64,
+  "kvHeads": 64,
+  "mlaDc": 512,
+  "mlaDr": 64,
+  "isMoe": true,
+  "numExperts": 256,
+  "moeInterSize": 2048,
+  "moeLayers": 75,
+  "description": "753.86B total (HF safetensors.total). MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=256, moe_intermediate_size=2048, first_k_dense_replace=3 -> 75 MoE layers."
+}

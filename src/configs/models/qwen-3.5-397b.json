@@ -1,0 +1,18 @@
+{
+  "id": "qwen-3.5-397b",
+  "name": "Qwen 3.5 (397B-A17B Hybrid)",
+  "family": "Qwen",
+  "attentionType": "hybrid",
+  "parameters": 397,
+  "layers": 60,
+  "fullAttnLayers": 15,
+  "hiddenSize": 4096,
+  "qHeads": 32,
+  "kvHeads": 2,
+  "headDim": 256,
+  "isMoe": true,
+  "numExperts": 512,
+  "moeInterSize": 1024,
+  "moeLayers": 60,
+  "description": "397B total (17B activated). Hybrid (linear + full attention) AND MoE. 60 layers, full_attention_interval=4 -> 15 full-attn layers (indices 3,7,...,59). MoE every layer (no dense replace). Explicit head_dim=256 (not 4096/32=128). num_experts=512, moe_intermediate_size=1024."
+}

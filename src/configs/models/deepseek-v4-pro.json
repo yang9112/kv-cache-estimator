@@ -1,0 +1,18 @@
+{
+  "id": "deepseek-v4-pro",
+  "name": "DeepSeek V4 Pro (1.6T)",
+  "family": "DeepSeek",
+  "attentionType": "mla",
+  "parameters": 1600,
+  "layers": 61,
+  "hiddenSize": 7168,
+  "qHeads": 128,
+  "kvHeads": 1,
+  "mlaDc": 512,
+  "mlaDr": 0,
+  "isMoe": true,
+  "numExperts": 384,
+  "moeInterSize": 3072,
+  "moeLayers": 61,
+  "description": "1.6T total (49B activated). V4 uses DSA attention: num_kv_heads=1 with a SHARED K==V tensor of head_dim (config.head_dim=512). Represented as MLA with mlaDc=head_dim, mlaDr=0. All 61 layers are MoE (no first_k_dense_replace). Source: HF transformers deepseek_v4/modeling_deepseek_v4.py + official V4 README."
+}
