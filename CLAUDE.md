@@ -31,8 +31,8 @@ No formal test framework is configured. `npm run verify` runs `scripts/verify-pr
   - `schema.ts` — `ModelPreset` type, `DEFAULT_PRESET_TEMPLATE`, `FAMILY_ORDER`, `normalizePreset()` validation
   - `models/*.json` — one JSON file per built-in preset, auto-discovered at build time via `import.meta.glob` (add/remove a file = add/remove a preset; no registry to edit)
   - `builtins.ts` — globs `models/*.json` → `BUILTIN_PRESETS` + the `CUSTOM_PRESET` pseudo-preset
-- `src/lib/presets.ts` — `usePresets` hook merging built-ins + localStorage user presets (runtime add/delete/export), family-grouped for the dropdown
-- `src/components/Calculator.tsx` — Monolithic ~550-line component with all UI state and layout. Contains inline `InputGroup` and `ResultRow` subcomponents. Two-column layout: inputs left, results right
+- `src/lib/presets.ts` — `usePresets` hook exposing built-in presets + the `Custom` pseudo-preset, family-grouped for the dropdown; also the JSON export helper
+- `src/components/Calculator.tsx` — Monolithic ~960-line component with all UI state and layout. Contains inline `InputGroup` and `ResultRow` subcomponents. `ResultRow` supports optional `tooltip` + `formula` props — hover shows an info icon with a popover containing a description and step-by-step derivation (numbered ① ② ③ ④ with live calculated values). Two-column layout: inputs left, results right
 - `src/lib/calc.ts` — Core calculation logic (`calculateKV`, `computeExpertParams`, `formatBytes`). Three KV formulas:
   - Standard: `2 × kv_heads × head_dim × precision × layers × seq_len × batch_size`
   - MLA: `(d_c + d_r) × precision × layers × seq_len × batch_size`

@@ -14,5 +14,5 @@
   "numExperts": 384,
   "moeInterSize": 2048,
   "moeLayers": 60,
-  "description": "~1.06T total (32B activated); HF safetensors.total=1058.6B. K2.5 reuses the DeepSeek-V3 text arch (MLA + MoE) under a multimodal head. Numbers from text_config. MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=384, first_k_dense_replace=1 -> 60 MoE layers."
+  "description": "~1.06T total (32B activated); HF safetensors.total=1058.6B. K2/K2.5 reuse the DeepSeek-V3 text architecture (MLA + MoE, DeepseekV3ForCausalLM). MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=384, moe_intermediate_size=2048, first_k_dense_replace=1 -> 60 MoE layers. Source: HF moonshotai/Kimi-K2-Instruct config.json."
 }

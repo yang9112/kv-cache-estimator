@@ -8,5 +8,5 @@
   "hiddenSize": 8192,
   "qHeads": 64,
   "kvHeads": 8,
-  "description": "Dense GQA. head_dim derived as hidden/qHeads = 128."
+  "description": "Dense GQA. head_dim derived as hidden/qHeads = 128. Source: HF Qwen/Qwen2-72B-Instruct config.json."
 }

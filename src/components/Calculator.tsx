@@ -1,5 +1,5 @@
 import { ChangeEvent, useState, useMemo } from 'react';
-import { Settings, Cpu, Layers, HardDrive, Database, Zap, AlignLeft, Hash, Info, Type, Server, Sliders, Save, Trash2, Download, X } from 'lucide-react';
+import { Settings, Cpu, Layers, HardDrive, Database, Zap, AlignLeft, Hash, Info, Type, Server, Sliders, Download } from 'lucide-react';
 import { PRECISIONS, KV_CACHE_DTYPES, CalculatorState } from '../types';
 import { calculateKV, formatBytes } from '../lib/calc';
 import { parseConfigJson } from '../lib/configParser';
@@ -42,9 +42,7 @@ export default function Calculator() {
     enablePrefixCaching: true,
   });
 
-  const { groupedPresets, findPreset, isUserPreset, addUserPreset, removeUserPreset } = usePresets();
-  const [showSaveForm, setShowSaveForm] = useState(false);
-  const [presetName, setPresetName] = useState('');
+  const { groupedPresets, findPreset } = usePresets();
 
   const handlePresetChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -73,26 +71,6 @@ export default function Calculator() {
           maxModelLen: prev.maxModelLen,
         }));
       }
-    }
-  };
-
-  const handleSavePreset = () => {
-    const name = presetName.trim();
-    if (!name) {
-      alert(t('presetNameRequired'));
-      return;
-    }
-    const preset = presetFromState(name, state);
-    addUserPreset(preset);
-    setState(prev => ({ ...prev, presetId: preset.id }));
-    setPresetName('');
-    setShowSaveForm(false);
-  };
-
-  const handleDeletePreset = () => {
-    if (state.presetId && isUserPreset(state.presetId)) {
-      removeUserPreset(state.presetId);
-      setState(prev => ({ ...prev, presetId: 'custom' }));
     }
   };
 
@@ -200,6 +178,106 @@ export default function Calculator() {
   const isMla = state.attentionType === 'mla';
   const isHybrid = state.attentionType === 'hybrid';
 
+  // Dynamic formula strings for tooltip display — rich step-by-step derivation
+  const formulas = useMemo(() => {
+    const tp = state.tp || 1;
+    const pp = state.pp || 1;
+    const dp = state.dp || 1;
+    const effL = isHybrid ? state.fullAttnLayers : state.layers;
+    const kvB = results.kvBytesPerParam;
+    const L1 = t('fl_perTokenPerLayer');
+    const LA = t('fl_perTokenAllLayers');
+    const LT = t('fl_total');
+    const LG = t('fl_perGpu');
+
+    // ── KV per-token-per-layer ──
+    const kvPerTokenPerLayerExpr = isMla
+      ? `(${state.mlaDc}+${state.mlaDr})×${kvB}B`
+      : `2×${state.kvHeads}×${results.headDim}×${kvB}B`;
+
+    // ── Weight per-GPU ──
+    const weightPerGPUFormula = state.isMoe && results.expertWeightTotal > 0
+      ? [
+          `① Dense: ${formatBytes(results.denseWeightTotal)} ÷ (${tp}×${pp}) = ${formatBytes(results.denseWeightPerGPU)}`,
+          `② Expert: ${formatBytes(results.expertWeightTotal)} ÷ (${tp}×${dp}×${pp}) = ${formatBytes(results.expertWeightPerGPU)}`,
+          `③ = ${formatBytes(results.denseWeightPerGPU)} + ${formatBytes(results.expertWeightPerGPU)} = ${formatBytes(results.weightPerGPU)}`,
+        ].join('\n')
+      : `① ${state.parameters}B × ${state.precision}B ÷ (${tp}×${pp}) = ${formatBytes(results.weightPerGPU)}`;
+
+    // ── KV per-GPU step-by-step ──
+    const kvPerGPUFormula = [
+      `① ${L1}: ${kvPerTokenPerLayerExpr} = ${formatBytes(results.sizePerTokenPerLayer)}`,
+      `② ${LA}: ${formatBytes(results.sizePerTokenPerLayer)} × ${effL} = ${formatBytes(results.sizePerTokenTotal)}`,
+      `③ ${LT}: ${formatBytes(results.sizePerTokenTotal)} × ${state.seqLength.toLocaleString()} × ${state.batchSize} = ${formatBytes(results.totalMemory)}`,
+      `④ ${LG}: ${formatBytes(results.totalMemory)} ÷ (${tp}×${pp}) = ${formatBytes(results.kvPerGPU)}`,
+    ].join('\n');
+
+    // ── Overhead ──
+    const ohParts: string[] = [];
+    if (results.activationMemory > 0) ohParts.push(`${t('fl_act')}: ${formatBytes(results.activationMemory)}`);
+    ohParts.push(`${t('fl_frag')}: 0.5 GB`);
+    if (tp > 1) ohParts.push(`NCCL: ${(0.5 + 0.3 * Math.log2(tp)).toFixed(1)} GB`);
+    if (state.enableExpertParallel && state.isMoe) ohParts.push('EP: 1.0 GB');
+    if (!state.enforceEager) ohParts.push('CudaGraph: 1.0 GB');
+    const overheadFormula = [
+      ohParts.join(' + '),
+      `= ${formatBytes(results.overheadPerGPU)}`,
+    ].join('\n');
+
+    // ── vLLM budget ──
+    const budgetFormula = [
+      `① ${state.gpuMemory} GB × ${state.gpuUtilization} = ${formatBytes(results.totalUsablePerGPU)}`,
+      `② ${formatBytes(results.totalUsablePerGPU)} - ${formatBytes(results.weightPerGPU)} - ${formatBytes(results.overheadPerGPU)}`,
+      `= ${formatBytes(results.vllmKvBudgetPerGPU)}`,
+    ].join('\n');
+
+    // ── Max tokens per GPU ──
+    const tokenSizeGPU = results.sizePerTokenTotal / (tp * pp);
+    const maxTokensFormula = `① ${LG}: ${formatBytes(results.sizePerTokenTotal)} ÷ (${tp}×${pp}) = ${formatBytes(tokenSizeGPU)}
+② ${formatBytes(results.vllmKvBudgetPerGPU)} ÷ ${formatBytes(tokenSizeGPU)} = ${Math.floor(results.maxTokensPerGPU).toLocaleString()} ${t('fl_tokens')}`;
+
+    // ── vLLM block-level ──
+    const numBlocksFormula = `⌊${formatBytes(results.vllmKvBudgetPerGPU)} ÷ ${formatBytes(results.pageSizeBytesAllLayers)}⌋ = ${results.numBlocks.toLocaleString()} ${t('fl_blocks')}`;
+    const kvTokensFormula = `${results.numBlocks.toLocaleString()} × ${state.blockSize} = ${results.kvCacheTokensPerGPU.toLocaleString()} ${t('fl_tokens')}`;
+    const concurrencyFormula = `${results.kvCacheTokensPerGPU.toLocaleString()} ÷ ${state.maxModelLen.toLocaleString()} = ${results.maxConcurrency > 0 ? results.maxConcurrency.toFixed(2) : 'N/A'}`;
+
+    // ── Cluster ──
+    const totalGpusFormula = `${tp} × ${pp} × ${dp} = ${tp * pp * dp} ${t('fl_gpus')}` + (state.enableExpertParallel ? `  (EP=${results.epSize})` : '');
+    const clusterTokensFormula = `${results.kvCacheTokensPerGPU.toLocaleString()} × ${dp} = ${results.totalClusterKVTokens.toLocaleString()} ${t('fl_tokens')}`;
+
+    // ── Total KV ──
+    const totalKvFormula = isMla
+      ? `${effL} × ${state.seqLength.toLocaleString()} × ${state.batchSize} × (${state.mlaDc}+${state.mlaDr}) × ${kvB}B\n= ${formatBytes(results.totalMemory)}`
+      : `${effL} × ${state.seqLength.toLocaleString()} × ${state.batchSize} × 2 × ${state.kvHeads} × ${results.headDim} × ${kvB}B\n= ${formatBytes(results.totalMemory)}`;
+
+    // ── Total weight ──
+    const weightTotalFormula = `① ${state.parameters}B × ${state.precision}B = ${formatBytes(results.weightTotal)}` +
+      (state.isMoe && results.expertWeightTotal > 0
+        ? `\n② ${t('fl_dense')}: ${formatBytes(results.denseWeightTotal)} + ${t('fl_expert')}: ${formatBytes(results.expertWeightTotal)}`
+        : '');
+
+    return {
+      kvPerGPU: kvPerGPUFormula,
+      weightPerGPU: weightPerGPUFormula,
+      overheadVram: overheadFormula,
+      maxUsableKvBudget: budgetFormula,
+      maxTokensPerGpu: maxTokensFormula,
+      numBlocks: numBlocksFormula,
+      kvCacheTokens: kvTokensFormula,
+      maxConcurrency: concurrencyFormula,
+      totalGpus: totalGpusFormula,
+      totalClusterKVTokens: clusterTokensFormula,
+      totalKvCache: totalKvFormula,
+      weightMemory: weightTotalFormula,
+      tokensPerGb: `1 GB ÷ ${formatBytes(results.sizePerTokenTotal)} = ${Math.floor(results.tokensPerGB).toLocaleString()} tokens`,
+      headDim: isMla ? '' : (state.headDim > 0
+        ? `config.head_dim = ${results.headDim}`
+        : `${state.hiddenSize} ÷ ${state.qHeads} = ${results.headDim}`),
+      bytesPerToken1L: `${kvPerTokenPerLayerExpr} = ${formatBytes(results.sizePerTokenPerLayer)}`,
+      bytesPerTokenAll: `${formatBytes(results.sizePerTokenPerLayer)} × ${effL} = ${formatBytes(results.sizePerTokenTotal)}`,
+    };
+  }, [state, results, isMla, isHybrid, t]);
+
   return (
     <>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -234,30 +312,12 @@ export default function Calculator() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => { setShowSaveForm(s => !s); setPresetName(''); }}
-                    title={t('saveAsPreset')}
-                    className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors shadow-sm flex items-center gap-1"
-                  >
-                    <Save className="w-3 h-3" /> {t('saveAsPreset')}
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleExportPreset}
                     title={t('exportConfig')}
                     className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors shadow-sm flex items-center gap-1"
                   >
                     <Download className="w-3 h-3" /> {t('exportConfig')}
                   </button>
-                  {isUserPreset(state.presetId) && (
-                    <button
-                      type="button"
-                      onClick={handleDeletePreset}
-                      title={t('deletePreset')}
-                      className="text-xs px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors shadow-sm flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3 h-3" /> {t('deletePreset')}
-                    </button>
-                  )}
                 </div>
               </label>
               <select 
@@ -266,35 +326,13 @@ export default function Calculator() {
                 className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
               >
                 {Object.entries(groupedPresets).map(([family, presets]) => (
-                  <optgroup key={family} label={family === 'Custom' ? t('custom') : family === 'My Presets' ? t('myPresets') : family}>
+                  <optgroup key={family} label={family === 'Custom' ? t('custom') : family}>
                     {presets.map(p => (
                       <option key={p.id} value={p.id}>{p.id === 'custom' ? t('custom') : p.name}</option>
                     ))}
                   </optgroup>
                 ))}
               </select>
-              {showSaveForm && (
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={presetName}
-                    onChange={e => setPresetName(e.target.value)}
-                    placeholder={t('presetNamePlaceholder')}
-                    autoFocus
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleSavePreset();
-                      if (e.key === 'Escape') { setShowSaveForm(false); setPresetName(''); }
-                    }}
-                    className="flex-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none"
-                  />
-                  <button type="button" onClick={handleSavePreset} title={t('saveAsPreset')} className="px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center">
-                    <Save className="w-4 h-4" />
-                  </button>
-                  <button type="button" onClick={() => { setShowSaveForm(false); setPresetName(''); }} title={t('cancel')} className="px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -660,9 +698,11 @@ export default function Calculator() {
         transition={{ duration: 0.4 }}
         className="lg:col-span-5 sticky top-8 space-y-6"
       >
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-500/10 dark:to-purple-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-3xl p-8 relative overflow-hidden backdrop-blur-sm shadow-sm">
+        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-500/10 dark:to-purple-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-3xl p-8 relative backdrop-blur-sm shadow-sm">
            {/* Decorative background glow */}
-           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-500 max-w-full rounded-full mix-blend-screen filter blur-[100px] opacity-10 dark:opacity-20 pointer-events-none"></div>
+           <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-500 max-w-full rounded-full mix-blend-screen filter blur-[100px] opacity-10 dark:opacity-20"></div>
+           </div>
 
            <div className="relative z-10">
               <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-300 mb-8">
@@ -686,14 +726,20 @@ export default function Calculator() {
                    label={t('kvPerGPU')}
                    value={formatBytes(results.kvPerGPU)}
                    highlight
+                   tooltip={t('tt_kvPerGPU')}
+                   formula={formulas.kvPerGPU}
                  />
                  <ResultRow 
                    label={t('weightPerGPU')}
-                   value={formatBytes(results.weightPerGPU) + (state.isMoe && results.expertWeightTotal > 0 ? ' (D:' + formatBytes(results.denseWeightPerGPU).split(' ')[0] + ' E:' + formatBytes(results.expertWeightPerGPU).split(' ')[0] + ')' : '')}
+                   value={formatBytes(results.weightPerGPU)}
+                   tooltip={t('tt_weightPerGPU')}
+                   formula={formulas.weightPerGPU}
                  />
                  <ResultRow 
                    label={t('overheadVram')}
                    value={formatBytes(results.overheadPerGPU)}
+                   tooltip={t('tt_overheadVram')}
+                   formula={formulas.overheadVram}
                  />
               </div>
            </div>
@@ -710,11 +756,15 @@ export default function Calculator() {
                label={t('maxUsableKvBudget')}
                value={formatBytes(results.vllmKvBudgetPerGPU)}
                highlight
+               tooltip={t('tt_maxUsableKvBudget')}
+               formula={formulas.maxUsableKvBudget}
              />
              <ResultRow 
                label={t('maxTokensPerGpu')}
                value={results.maxTokensPerGPU > 0 ? Math.floor(results.maxTokensPerGPU).toLocaleString() : 'Out of Memory'}
                highlight
+               tooltip={t('tt_maxTokensPerGpu')}
+               formula={formulas.maxTokensPerGpu}
              />
           </div>
         </div>
@@ -725,26 +775,36 @@ export default function Calculator() {
              <ResultRow 
                label={t('numBlocks')}
                value={results.numBlocks.toLocaleString()}
+               tooltip={t('tt_numBlocks')}
+               formula={formulas.numBlocks}
              />
              <ResultRow 
                label={t('kvCacheTokens')}
                value={results.kvCacheTokensPerGPU.toLocaleString()}
                highlight
+               tooltip={t('tt_kvCacheTokens')}
+               formula={formulas.kvCacheTokens}
              />
              <ResultRow 
                label={t('maxConcurrency')}
                value={results.maxConcurrency > 0 ? results.maxConcurrency.toFixed(2) + 'x' : 'Out of Memory'}
                highlight
+               tooltip={t('tt_maxConcurrency')}
+               formula={formulas.maxConcurrency}
              />
              <hr className="my-2 border-zinc-200 dark:border-zinc-800" />
              <ResultRow 
                label={t('totalGpus')}
                value={results.totalGpus.toLocaleString() + ' (TP=' + state.tp + ' PP=' + state.pp + ' DP=' + state.dp + ')' + (state.enableExpertParallel ? ' EP=on' : '')}
+               tooltip={t('tt_totalGpus')}
+               formula={formulas.totalGpus}
              />
              <ResultRow 
                label={t('totalClusterKVTokens')}
                value={results.totalClusterKVTokens.toLocaleString()}
                highlight
+               tooltip={t('tt_totalClusterKVTokens')}
+               formula={formulas.totalClusterKVTokens}
              />
           </div>
         </div>
@@ -754,28 +814,40 @@ export default function Calculator() {
           <div className="space-y-3">
             <ResultRow 
                label="Total KV Cache"
-               value={formatBytes(results.totalMemory)} 
+               value={formatBytes(results.totalMemory)}
+               tooltip={t('tt_totalKvCache')}
+               formula={formulas.totalKvCache}
              />
              <ResultRow 
                label={t('weightMemory')}
-               value={formatBytes(results.weightTotal)} 
+               value={formatBytes(results.weightTotal)}
+               tooltip={t('tt_weightMemory')}
+               formula={formulas.weightMemory}
              />
              <ResultRow 
                label={t('tokensPerGb')}
                value={Math.floor(results.tokensPerGB).toLocaleString()}
+               tooltip={t('tt_tokensPerGb')}
+               formula={formulas.tokensPerGb}
              />
              <hr className="my-2 border-zinc-200 dark:border-zinc-800" />
              <ResultRow 
                label={t('headDim')}
-               value={isMla ? t('notApplicable') : results.headDim.toString()} 
+               value={isMla ? t('notApplicable') : results.headDim.toString()}
+               tooltip={isMla ? '' : t('tt_headDim')}
+               formula={isMla ? '' : formulas.headDim}
              />
              <ResultRow 
                label={t('bytesPerToken1L')}
                value={formatBytes(results.sizePerTokenPerLayer)}
+               tooltip={t('tt_bytesPerToken1L')}
+               formula={formulas.bytesPerToken1L}
              />
              <ResultRow 
                label={t('bytesPerTokenAll')}
-               value={formatBytes(results.sizePerTokenTotal)} 
+               value={formatBytes(results.sizePerTokenTotal)}
+               tooltip={t('tt_bytesPerTokenAll')}
+               formula={formulas.bytesPerTokenAll}
              />
           </div>
         </div>
@@ -856,11 +928,32 @@ function InputGroup({
   );
 }
 
-function ResultRow({ label, value, highlight = false }: { label: string, value: string, highlight?: boolean }) {
+function ResultRow({ label, value, highlight = false, tooltip, formula }: {
+  label: string,
+  value: string,
+  highlight?: boolean,
+  tooltip?: string,
+  formula?: string,
+}) {
+  const hasTooltip = !!(tooltip || formula);
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-zinc-600 dark:text-zinc-400 text-sm">{label}</span>
-      <span className={`font-mono font-medium ${highlight ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/10 px-3 py-1 rounded-md' : 'text-zinc-800 dark:text-zinc-200'}`}>
+    <div className="flex items-center justify-between group/row">
+      <span className="text-zinc-600 dark:text-zinc-400 text-sm flex items-center gap-1.5">
+        {label}
+        {hasTooltip && (
+          <span className="relative inline-flex items-center">
+            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 cursor-help" />
+            <span className="absolute bottom-full left-0 mb-2 w-64 lg:w-80 max-h-[70vh] overflow-y-auto p-3 bg-white/95 dark:bg-zinc-800/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs rounded-xl shadow-xl opacity-0 invisible group-hover/row:opacity-100 group-hover/row:visible transition-opacity duration-150 pointer-events-none z-50">
+              <span className="absolute top-full left-3 -mt-px border-[6px] border-transparent border-t-white dark:border-t-zinc-800" />
+              {tooltip && <p className="leading-relaxed mb-1.5">{tooltip}</p>}
+              {formula && formula.split('\n').map((line, i) => (
+                <p key={i} className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400 leading-relaxed break-all">{line}</p>
+              ))}
+            </span>
+          </span>
+        )}
+      </span>
+      <span className={`font-mono font-medium text-right ${highlight ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/10 px-3 py-1 rounded-md' : 'text-zinc-800 dark:text-zinc-200'}`}>
         {value}
       </span>
     </div>

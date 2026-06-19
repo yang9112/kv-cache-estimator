@@ -13,5 +13,5 @@
   "numExperts": 256,
   "moeInterSize": 1536,
   "moeLayers": 62,
-  "description": "228.7B total (HF safetensors.total). GQA with EXPLICIT head_dim=128 (not hidden/qHeads=64). All 62 layers full attention (attn_type_list all=1), MoE every layer (no dense replace). num_local_experts=256, intermediate_size=1536."
+  "description": "228.7B total (HF safetensors.total). GQA with EXPLICIT head_dim=128 (not hidden/qHeads=64). All 62 layers full attention (attn_type_list all=1), MoE every layer (no dense replace). num_local_experts=256, intermediate_size=1536. Source: HF MiniMaxAI/MiniMax-M2 config.json."
 }

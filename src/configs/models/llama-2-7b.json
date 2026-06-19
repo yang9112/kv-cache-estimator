@@ -8,5 +8,5 @@
   "hiddenSize": 4096,
   "qHeads": 32,
   "kvHeads": 32,
-  "description": "Dense MHA (no GQA in Llama 2): kvHeads = qHeads = 32."
+  "description": "Dense MHA (no GQA in Llama 2): kvHeads = qHeads = 32. Source: HF meta-llama/Llama-2-7b-hf config.json."
 }

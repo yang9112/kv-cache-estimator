@@ -16,9 +16,10 @@ A lightweight, interactive web tool for estimating GPU memory requirements of KV
 ## Features
 
 - **Multi-architecture support** — Standard (GQA/MQA), Multi-Latent Attention (MLA), and Hybrid attention
-- **Model presets grouped by family** — DeepSeek, GLM, Qwen, LLaMA, Kimi, MiniMax, and more. Built-in presets are file-based (`src/configs/models/*.json`): add or remove a file to change the defaults. Save your own presets in-browser and export them as JSON (see [`src/configs/models/README.md`](src/configs/models/README.md))
+- **Model presets grouped by family** — DeepSeek, GLM, Qwen, LLaMA, Kimi, MiniMax, and more. Built-in presets are file-based (`src/configs/models/*.json`): add or remove a file to change the defaults. Export the current configuration as JSON (see [`src/configs/models/README.md`](src/configs/models/README.md))
 - **vLLM KV budget estimation** — calculate max usable KV cache and concurrent tokens per GPU based on VRAM capacity and utilization
 - **Custom config import** — drop in a `config.json` from HuggingFace to auto-fill architecture parameters (including MoE fields)
+- **Step-by-step formula tooltips** — hover any result metric to see a description and numbered derivation with live values (e.g. ① per-token/layer → ② per-token/all-layers → ③ total → ④ per-GPU)
 - **Parallelism** — Tensor (TP), Pipeline (PP), Data (DP), and Expert (EP) parallelism with correct MoE weight sharding
 - **Precision options** — FP32, FP16/BF16, INT8/FP8, INT4
 - **Bilingual UI** — English and Chinese
@@ -85,9 +86,10 @@ Contributions are welcome! Please feel free to open issues or submit pull reques
 ### 功能特性
 
 - **多架构支持** — 标准注意力 (GQA/MQA)、多潜空间注意力 (MLA)、混合架构 (Hybrid)
-- **模型预设按系列分组** — DeepSeek、GLM、Qwen、LLaMA、Kimi、MiniMax 等。内置预设基于文件 (`src/configs/models/*.json`)，增删文件即可调整默认配置；也可在浏览器中保存自定义预设并导出为 JSON（详见 [`src/configs/models/README.md`](src/configs/models/README.md)）
+- **模型预设按系列分组** — DeepSeek、GLM、Qwen、LLaMA、Kimi、MiniMax 等。内置预设基于文件 (`src/configs/models/*.json`)，增删文件即可调整默认配置；可在浏览器中导出当前配置为 JSON（详见 [`src/configs/models/README.md`](src/configs/models/README.md)）
 - **vLLM KV 预算估算** — 根据单卡显存容量和占用率，计算可用 KV Cache 上限和最大并发 Token 数
 - **导入 config.json** — 从 HuggingFace 拖入模型配置文件，自动填充架构参数（含 MoE 字段）
+- **悬停公式推导** — 鼠标移至任一结果指标，展示说明与分步推导公式（如 ① 单Token/单层 → ② 单Token/全层 → ③ 总量 → ④ 单卡）
 - **并行策略** — 张量并行 (TP)、流水线并行 (PP)、数据并行 (DP)、专家并行 (EP)，MoE 权重按 vLLM 源码正确切分
 - **精度选项** — FP32、FP16/BF16、INT8/FP8、INT4
 - **中英双语** — 界面支持中文和英文

@@ -8,5 +8,5 @@
   "hiddenSize": 4096,
   "qHeads": 32,
   "kvHeads": 8,
-  "description": "Dense GQA. head_dim derived as hidden/qHeads = 128."
+  "description": "Dense GQA. head_dim derived as hidden/qHeads = 128. Source: HF meta-llama/Meta-Llama-3-8B config.json (3.1 shares this architecture)."
 }

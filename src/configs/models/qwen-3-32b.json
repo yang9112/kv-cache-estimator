@@ -9,5 +9,5 @@
   "qHeads": 64,
   "kvHeads": 8,
   "headDim": 128,
-  "description": "Dense GQA. num_attention_heads=64, num_key_value_heads=8, explicit head_dim=128 (= 5120/64)."
+  "description": "Dense GQA. num_attention_heads=64, num_key_value_heads=8, explicit head_dim=128 (config head_dim; not derived from hidden/qHeads=80). Source: HF Qwen/Qwen3-32B config.json."
 }

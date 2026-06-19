@@ -8,5 +8,5 @@
   "hiddenSize": 4096,
   "qHeads": 32,
   "kvHeads": 2,
-  "description": "Dense GQA. kvHeads = multi_query_group_num (MQA-style, 2 KV heads)."
+  "description": "Dense GQA. kvHeads = multi_query_group_num (MQA-style, 2 KV heads). Source: HF THUDM/glm-4-9b-chat config.json."
 }

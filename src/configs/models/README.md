@@ -57,11 +57,11 @@ at runtime (only known fields are loaded).
 }
 ```
 
-## Promoting a user preset
+## Promoting a configuration to a built-in
 
-The UI's **Save as Preset** stores presets to the browser's localStorage. Use
-**Export** to download one as a `.json` file in this same format, then drop it
-into this folder and rebuild to promote it to a shared built-in.
+Use the UI's **Export** button to download the current configuration as a
+`.json` file in this same format, then drop it into this folder and rebuild to
+promote it to a shared built-in preset.
 
 ## Verifying
 

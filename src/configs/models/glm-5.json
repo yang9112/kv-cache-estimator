@@ -14,5 +14,5 @@
   "numExperts": 256,
   "moeInterSize": 2048,
   "moeLayers": 75,
-  "description": "753.86B total (HF safetensors.total). MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=256, moe_intermediate_size=2048, first_k_dense_replace=3 -> 75 MoE layers."
+  "description": "753.86B total (HF safetensors.total). MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=256, moe_intermediate_size=2048, first_k_dense_replace=3 -> 75 MoE layers. Source: HF zai-org/GLM-5 config.json."
 }

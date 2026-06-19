@@ -3,8 +3,8 @@
 // Built-in (default) presets live as individual JSON files in ./models/ and are
 // discovered at build time via Vite's import.meta.glob (see ./builtins.ts).
 // Adding or removing a file there automatically adds or removes a preset — no
-// central registry to edit. User presets are stored in localStorage at runtime
-// (see ../lib/presets.ts). Both flows produce objects of the shape below.
+// central registry to edit. The UI can also export the current configuration
+// as the same JSON shape (see ../lib/presets.ts). All produce the shape below.
 
 export type AttentionType = 'standard' | 'mla' | 'hybrid';
 
@@ -87,7 +87,7 @@ const toBool = (v: unknown): boolean | undefined =>
   typeof v === 'boolean' ? v : undefined;
 
 /**
- * Normalize a raw preset object (from a JSON file or localStorage) into a
+ * Normalize a raw preset object (from a JSON file) into a
  * validated ModelPreset. Required fields are coerced; optional fields are passed
  * through only when present, so the calculator's `?? prev` fallbacks keep
  * working when a preset omits an architecture field. Throws on missing required

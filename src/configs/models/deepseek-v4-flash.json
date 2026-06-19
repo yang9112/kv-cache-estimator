@@ -14,5 +14,5 @@
   "numExperts": 256,
   "moeInterSize": 2048,
   "moeLayers": 43,
-  "description": "284B total (13B activated). DSA attention like V4 Pro: shared K==V of head_dim=512 (mlaDc=head_dim, mlaDr=0). All 43 layers MoE. Source: official V4 README."
+  "description": "284B total (13B activated). V4 hybrid CSA+HCA attention: num_key_value_heads=1 with a single shared K==V cache tensor of head_dim=512 (mlaDc=head_dim, mlaDr=0; rope_head_dim=64 is a slice within the 512-dim cache, not a separate buffer like V3 MLA). All 43 layers MoE (no first_k_dense_replace). Source: HF deepseek-ai/DeepSeek-V4-Flash config.json + inference/model.py."
 }

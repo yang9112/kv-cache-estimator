@@ -1,0 +1,18 @@
+{
+  "id": "deepseek-v3.2",
+  "name": "DeepSeek V3.2-Exp (671B)",
+  "family": "DeepSeek",
+  "attentionType": "mla",
+  "parameters": 671,
+  "layers": 61,
+  "hiddenSize": 7168,
+  "qHeads": 128,
+  "kvHeads": 128,
+  "mlaDc": 512,
+  "mlaDr": 64,
+  "isMoe": true,
+  "numExperts": 256,
+  "moeInterSize": 2048,
+  "moeLayers": 58,
+  "description": "671B total. Same MLA + MoE backbone as V3 (kv_lora_rank=512/512=dc, qk_rope_head_dim=64=dr, n_routed_experts=256, moe_intermediate_size=2048, first_k_dense_replace=3 -> 58 MoE layers). V3.2 adds DSA (DeepSeek Sparse Attention): a lightweight index attention (index_n_heads=64, index_head_dim=128, index_topk=2048) selects top-k KV chunks so full MLA attention runs only on them. DSA is a COMPUTE optimization, not a storage change — the full compressed MLA latent (dc+dr per token) is still cached for random chunk access, so KV cache memory equals V3's MLA cache. The small DSA index KV cache is not modeled separately. Source: HF deepseek-ai/DeepSeek-V3.2-Exp config.json."
+}

@@ -14,5 +14,5 @@
   "numExperts": 64,
   "moeInterSize": 1536,
   "moeLayers": 46,
-  "description": "31.22B total, 3B activated (HF safetensors.total). MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=64, moe_intermediate_size=1536, first_k_dense_replace=1 -> 46 MoE layers."
+  "description": "31.22B total, 3B activated (HF safetensors.total). MLA: kv_lora_rank=512, qk_rope_head_dim=64. MoE: n_routed_experts=64, moe_intermediate_size=1536, first_k_dense_replace=1 -> 46 MoE layers. Source: HF zai-org/GLM-4.7-Flash config.json."
 }
